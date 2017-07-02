@@ -120,6 +120,21 @@
       </ion-view>
     </script> 
 
+    <script id="buzzfeedView.html" type="text/ng-template">
+      <ion-view view-title="SIREN">  
+        <ion-content>
+          <div class="row full-screen-height">
+            <div class="message-top text-center">{{topBannerMessage}}</div>
+            <div class="col full-screen-height"></div>
+            <div class="col col-center">
+              {{status}}
+            </div>
+            <div class="col"></div>
+          </div>
+        </ion-content>
+      </ion-view>
+    </script> 
+
     <script id="gridView.html" type="text/ng-template">
       <ion-view view-title="SIREN">  
         <ion-content>
@@ -147,10 +162,10 @@
                 </div>
               </div>
             </div>
-            <div class="col complaint-portal-back text-center tile-back-cover full-screen-height">
+            <div class="col complaint-portal-back text-center tile-back-cover full-screen-height" ng-click="openBuzzfeed()">
               <div class="full-screen-height table-type">
                 <div class="table-cell-type">
-                  <span>Complaint Portal</span>
+                  <span>BuzzFeed</span>
                 </div>
               </div>
             </div>

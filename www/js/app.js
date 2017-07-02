@@ -214,6 +214,19 @@ sirenApp.config(function($stateProvider, $urlRouterProvider, $httpProvider) {
         light_location_id: null
       }
     })
+    .state('buzzfeedView', {
+      url: '/buzzfeedView',
+      templateUrl: 'buzzfeedView.html',
+      controller: 'BuzzfeedViewCtrl',
+      onEnter: function($state, AuthenticationService){
+        if(!AuthenticationService.isUserSignedIn()){
+          $state.go('signin');
+        }
+      },
+      params:{
+        status: "No BuzzFeed for you"
+      }
+    })
     .state('registerView', {
       url: '/register',
       templateUrl: 'register.html',
@@ -259,6 +272,7 @@ sirenApp.constant("appConstants", {
   createDestinationUrl: "/api/v1/emergencies/create_destination",
   updateCurrentLocationUrl: "/api/v1/emergencies/:id/update_location",
   switchTrafficLightUrl: "/api/v1/emergencies/:id/switch_traffic_light",
+  buzzfeedUrl: "/api/v1/users/:id/buzzfeed",
   mapOptions: {
     zoom: 15
   }
@@ -272,7 +286,7 @@ sirenApp.controller('SignInCtrl', function($scope, $state, PushNotificationServi
       $scope.loginDetails.email = "";
       $scope.loginDetails.password = "";
       var user = data.data;
-      LocalStorageService.set(appConstants.signedInUserDetails, { authToken: user.auth_token, category: user.category });
+      LocalStorageService.set(appConstants.signedInUserDetails, { authToken: user.auth_token, category: user.category, id: user.id });
       if(user.category !== "sufferer"){
         $state.go('helpView', { category: user.category, ready: false });
       }else{
@@ -311,6 +325,12 @@ sirenApp.controller('RegisterViewCtrl', function($scope, $state, PushNotificatio
   }    
 });
 
+sirenApp.controller('BuzzfeedViewCtrl', function($scope, $state) {
+  $scope.status = $state.params.status;
+  $scope.topBannerMessage = 'BuzzFeed';
+  $scope.showStatus = false;
+});
+
 sirenApp.controller('HelpViewCtrl', function($scope, $state, EmergencyRouteService) {
     $scope.helpMessage = "Wait for notification";
     $scope.category = $state.params.category;
@@ -340,7 +360,7 @@ sirenApp.controller('HelpViewCtrl', function($scope, $state, EmergencyRouteServi
     }
 });
 
-sirenApp.controller('GridViewCtrl', function($scope, $state, $rootScope, $cordovaGeolocation, EmergencyRouteService, appConstants){
+sirenApp.controller('GridViewCtrl', function($scope, $state, $rootScope, $cordovaGeolocation, EmergencyRouteService, appConstants, AuthenticationService){
   $scope.showMap = function(mapType){
     $rootScope.currentMapType = mapType;
     $cordovaGeolocation.getCurrentPosition(appConstants.locationOptions).then(function(position){
@@ -353,6 +373,16 @@ sirenApp.controller('GridViewCtrl', function($scope, $state, $rootScope, $cordov
     }, function(error){
       $rootScope.showMessage('Location Error', 'Could not get location, please enable location and try again.', 
         $scope, false, 'gridView');
+    });
+  };
+
+  $scope.openBuzzfeed = function() {
+    EmergencyRouteService.getBuzzfeed(AuthenticationService.getSignedInUserId).then(function(data) {
+      var buzzFeed = data.data;
+      var status = buzzFeed.status;
+      $state.go('buzzfeedView', {status: status});
+    }, function(error) {
+      console.log('the error is ', error);
     });
   };
 });
@@ -399,6 +429,14 @@ sirenApp.service('AuthenticationService', function($http, appConstants, PushNoti
       var userDetails = LocalStorageService.get(appConstants.signedInUserDetails);
       if(userDetails != undefined && userDetails != null){
         return userDetails.authToken;
+      }else{
+        return null;
+      }
+    },
+    getSignedInUserId: function(){
+      var userDetails = LocalStorageService.get(appConstants.signedInUserDetails);
+      if(userDetails != undefined && userDetails != null){
+        return userDetails.id;
       }else{
         return null;
       }
@@ -456,6 +494,11 @@ sirenApp.service('EmergencyRouteService', function($http, appConstants, Authenti
       return $http.put(appConstants.serverUrl + appConstants.switchTrafficLightUrl.replace(":id", emergencyRouteId), {
         location_id: locationId
       }, {
+        headers: {'Authorization': AuthenticationService.getSignedInUserAuthToken()}
+      });
+    },
+    getBuzzfeed: function(userId){
+      return $http.get(appConstants.serverUrl + appConstants.buzzfeedUrl.replace(":id", userId), {
         headers: {'Authorization': AuthenticationService.getSignedInUserAuthToken()}
       });
     }
